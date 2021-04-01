@@ -16,19 +16,19 @@ model {
     mean.phi  <- 1 / (1 + exp(-alpha.phi))
     # trend parameter
     beta.time.phi ~ dnorm(0, 0.01)
-    # log  constraint  for  population  growth  rate (rho)
+    # log  constraint  for  fecundity (f)   
     for (t in 1:(s -1)){
-        rho[t] <- exp(log.rho[t])
-        log.rho[t] <- alpha.rho + eps.rho[t]
-        eps.rho[t] ~ dnorm(0, tau.rho)
+        f[t] <- exp(log.f[t])
+        log.f[t] <- alpha.f + eps.f[t]
+        eps.f[t] ~ dnorm(0, tau.f)
     }
     
-    alpha.rho ~ dnorm(0, 0.01)
-    # alpha.rho on prob      scale
-    mean.rho  <- exp(alpha.rho)
+    alpha.f ~ dnorm(0, 0.01)
+    # alpha.f on prob      scale
+    mean.f  <- exp(alpha.f)
     # temporal  random  variation
-    tau.rho  <- 1 / (sigma.rho * sigma.rho)
-    sigma.rho ~ dunif(0, 2)
+    tau.f  <- 1 / (sigma.f * sigma.f)
+    sigma.f ~ dunif(0, 2)
     for (t in 1:s){
         # logit  constraint  for  detectability (p)
         p[t] <- 1 / (1 + exp(-logit.p[t]))
@@ -56,7 +56,7 @@ model {
     fifthexpo [1]  <- sum(u[2:s])
     sixthexpo [1]  <- v[1]-d[1]
     ##### log -likelihood  for the  last  occasion
-    l.num[s] <- (u[s] * log(xi[s])) + (firstexpo[s] * (log(phi[s-1]) - log(rho[s -1]))) +(n[s] * log(p[s])) + (secondexpo[s] * log(1-p[s])) +(fourthexpo[s] * log(mu[s])) + (d[s] * log(1-mu[s])) +(fifthexpo[s] * log(1-(p[s]*(1-mu[s])))) +(sixthexpo[s] * log(chi[s]))
+    l.num[s] <- (u[s] * log(xi[s])) + (firstexpo[s] * (log(phi[s-1]) - log(phi[s-1]+f[s -1]))) +(n[s] * log(p[s])) + (secondexpo[s] * log(1-p[s])) +(fourthexpo[s] * log(mu[s])) + (d[s] * log(1-mu[s])) +(fifthexpo[s] * log(1-(p[s]*(1-mu[s])))) +(sixthexpo[s] * log(chi[s]))
     chi[s] <- 1
     firstexpo[s] <- sum(u[1:(s-1)])
     secondexpo_a[s] <- sum(u[1:s])
@@ -67,7 +67,7 @@ model {
     sixthexpo[s] <- v[s]-d[s]
     #####  likelihood  from  occasion 2 to s-1
     for (i in 2:(s-1)) {
-        l.num[i] <- (u[i] * log(xi[i])) + (firstexpo[i] * (log(phi[i-1]) - log(rho[i -1]))) +(n[i] * log(p[i])) + (secondexpo[i] * log(1-p[i])) +(thirdexpo[i] * log(phi[i])) + (fourthexpo[i] * log(mu[i])) +(d[i] * log(1-mu[i])) + (fifthexpo[i] * log(1-(p[i]*(1-mu[i])))) +(sixthexpo[i] * log(chi[i]))
+        l.num[i] <- (u[i] * log(xi[i])) + (firstexpo[i] * (log(phi[i-1]) - log(phi[i-1]+f[i -1]))) +(n[i] * log(p[i])) + (secondexpo[i] * log(1-p[i])) +(thirdexpo[i] * log(phi[i])) + (fourthexpo[i] * log(mu[i])) +(d[i] * log(1-mu[i])) + (fifthexpo[i] * log(1-(p[i]*(1-mu[i])))) +(sixthexpo[i] * log(chi[i]))
         # first  exponent
         firstexpo[i] <- sum(u[1:(i-1)])
         # second  exponent
@@ -139,5 +139,11 @@ model {
     #################  Gamma  as  derived  parameter
     for (i in 2:s) {
         gamma[i] <- phi[i-1] / rho[i-1]
+
     }
+    for (i in 1:(s-1)) {
+        rho[i] <- phi[i] + f[i]
+
+    }
+
 }
