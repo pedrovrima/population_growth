@@ -8,7 +8,7 @@ inits <- function() {
         alpha.f = runif(1, -0.5, 0.5),
         sigma.f = runif(1, 0, 1),
         alpha.p = runif(1, -0.5, 0.5),
-        mu = runif(bugs.data.storm$s, 0.3, 1)
+        mu = runif(bugs.data.scopoli$s, 0.3, 1)
     )
 }
 # Define  parameters  to be  monitored
@@ -52,4 +52,4 @@ nburn <- 30000
 nchains <- 3
 # Call  JAGS
 library("R2jags")
-out <- jags(bugs.data.storm, inits, parameters, "model.jags", n.chains = nchains, n.thin = nthin, n.iter = niter, n.burnin = nburn, working.directory = getwd())
+out <- jags(bugs.data.scopoli, inits, parameters_f, "model.jags", n.chains = nchains, n.thin = nthin, n.iter = niter, n.burnin = nburn, working.directory = getwd())

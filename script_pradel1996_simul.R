@@ -535,3 +535,90 @@ simul.js <- function(PHI, P, b, N){
 # Execute simulation function
 sim <- simul.js(PHI, P, b, N)
 CH <- sim$CH
+
+
+
+# 10.4. Models with constant survival and time-dependent entry
+# Define parameter values
+n.occasions <- 7                         # Number of capture occasions
+N <- 400                                 # Superpopulation size
+phi <- rep(0.7, n.occasions-1)           # Survival probabilities
+b <- c(0.34, rep(0.11, n.occasions-1))   # Entry probabilities 
+p <- rep(0.5, n.occasions)               # Capture probabilities
+
+PHI <- matrix(rep(phi, (n.occasions-1)*N), ncol = n.occasions-1, nrow = N, byrow = T)
+P <- matrix(rep(p, n.occasions*N), ncol = n.occasions, nrow = N, byrow = T)
+
+# Function to simulate capture-recapture data under the JS model
+simul.js <- function(PHI, P, b, N){
+   B <- rmultinom(1, N, b) # Generate no. of entering ind. per occasion
+   n.occasions <- dim(PHI)[2] + 1
+   CH.sur <- CH.p <- matrix(0, ncol = n.occasions, nrow = N)
+   # Define a vector with the occasion of entering the population
+   ent.occ <- numeric()
+   for (t in 1:n.occasions){
+      ent.occ <- c(ent.occ, rep(t, B[t]))
+      }
+   # Simulating survival
+   for (i in 1:N){
+      CH.sur[i, ent.occ[i]] <- 1   # Write 1 when ind. enters the pop.
+      if (ent.occ[i] == n.occasions) next
+      for (t in (ent.occ[i]+1):n.occasions){
+         # Bernoulli trial: has individual survived occasion?
+         sur <- rbinom(1, 1, PHI[i,t-1])
+         ifelse (sur==1, CH.sur[i,t] <- 1, break)
+         } #t
+      } #i
+   # Simulating capture
+   for (i in 1:N){
+      CH.p[i,] <- rbinom(n.occasions, 1, P[i,])
+      } #i
+   # Full capture-recapture matrix
+   CH <- CH.sur * CH.p
+   
+   # Remove individuals never captured
+   cap.sum <- rowSums(CH)
+   never <- which(cap.sum == 0)
+   CH <- CH[-never,]
+   Nt <- colSums(CH.sur)    # Actual population size
+   return(list(CH=CH, B=B, N=Nt))
+   }
+
+# Execute simulation function
+sim <- simul.js(PHI, P, b, N)
+CH <- sim$CH
+
+
+
+
+
+
+
+
+n.occasions <- 20                         # Number of capture occasions
+N_init <- 40                                 # Superpopulation size
+phi <- rep(0.4, n.occasions-1)           # Survival probabilities
+lambda <- c(1.2, 1.9, 0.9,0.5,2,0.6,rep(1.5, n.occasions-6))   # Entry probabilities 
+p <- rep(0.5, n.occasions)               # Capture probabilities
+
+	CH=matrix(1,N_init,1)
+
+for (i in 2:n.occasions){
+	icaps <- c()
+	for(j in 1:nrow(CH)){
+		icaps <- c(icaps,rbinom(1,CH[j,i-1],phi[i-1]))
+	}
+	CH <- cbind(CH,icaps)
+	pop_prev <- sum(CH[,i-1])
+	pop_this <- pop_prev*lambda[i-1]
+	alive_this <- sum(CH[,i])
+	new_inds <- pop_this-alive_this
+	newInds  <- matrix(c(rep(0,i-1),1),new_inds,i,byrow=T)
+	CH <- rbind(CH,newInds)
+}
+
+for(i in 1:nrow(CH)){
+	for(j in 1:ncol(CH)){
+		CH[i,j] <- rbinom(1,CH[i,j],p[j])
+	}
+}
