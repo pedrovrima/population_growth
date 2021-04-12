@@ -20,12 +20,14 @@ time <- c(1:(dim(CH)[2] - 1))
 # standardize  time
 stand_time <- (time - mean(time)) / sd(time)
 # Bundle  data
-bugs.data <- list(u = u, n = n, v = v, d = d, s = dim(CH)[2], TIME = stand_time)
+bugs.data <- list(u = u, n = n, v = v, d = d, s = dim(CH)[2], TIME = var)
 ##  Initial  values
 inits <- function() {
     list(
         alpha.phi = runif(1, -2, 2),
         beta.time.phi = runif(1, -2, 2),
+                beta.time.f = runif(1, -2, 2),
+
         alpha.f = runif(1, -0.5, 0.5),
         sigma.f = runif(1, 0, 1),
         alpha.p = runif(1, -0.5, 0.5),
@@ -38,6 +40,8 @@ parameters <- c(
     "alpha.phi",
     "mean.phi",
     "beta.time.phi",
+    "beta.time.f",
+    
     "gamma",
     "f",
     "alpha.f",

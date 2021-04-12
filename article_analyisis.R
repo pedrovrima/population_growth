@@ -5,6 +5,8 @@ inits <- function() {
     list(
         alpha.phi = runif(1, -2, 2),
         beta.time.phi = runif(1, -2, 2),
+        beta.time.f = runif(1, -2, 2),
+
         alpha.f = runif(1, -0.5, 0.5),
         sigma.f = runif(1, 0, 1),
         alpha.p = runif(1, -0.5, 0.5),
@@ -17,6 +19,8 @@ parameters_f <- c(
     "alpha.phi",
     "mean.phi",
     "beta.time.phi",
+    "beta.time.f",
+
     "gamma",
     "f",
     "alpha.f",

@@ -595,12 +595,15 @@ CH <- sim$CH
 
 
 
-n.occasions <- 20                         # Number of capture occasions
-N_init <- 40                                 # Superpopulation size
+n.occasions <- 15                         # Number of capture occasions
+time <- 1:(n.occasions-1)
+var <- rnorm(n.occasions-1,0,1)
+stand_time <- (time - mean(time)) / sd(time)
+N_init <- 5                             # Superpopulation size
 phi <- rep(0.4, n.occasions-1)           # Survival probabilities
-lambda <- c(1.2, 1.9, 0.9,0.5,2,0.6,rep(1.5, n.occasions-6))   # Entry probabilities 
+f <- exp(.01+(var*-.2))   # Entry probabilities 
 p <- rep(0.5, n.occasions)               # Capture probabilities
-
+lambda <- f+phi
 	CH=matrix(1,N_init,1)
 
 for (i in 2:n.occasions){
@@ -622,3 +625,7 @@ for(i in 1:nrow(CH)){
 		CH[i,j] <- rbinom(1,CH[i,j],p[j])
 	}
 }
+
+   cap.sum <- rowSums(CH)
+   never <- which(cap.sum == 0)
+   CH <- CH[-never,]

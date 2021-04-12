@@ -9,7 +9,8 @@ model {
     # logit  constraint  for  survival  probability (phi)
     for (t in 1:(s -1)){
         phi[t] <- 1 / (1 + exp(-logit.phi[t]))
-        logit.phi[t] <- alpha.phi + beta.time.phi * TIME[t]
+        logit.phi[t] <- alpha.phi
+        # + beta.time.phi * TIME[t]
     }
 
     alpha.phi ~ dnorm(0, 0.01)# alpha.phi on prob      scale
@@ -19,11 +20,13 @@ model {
     # log  constraint  for  fecundity (f)   
     for (t in 1:(s -1)){
         f[t] <- exp(log.f[t])
-        log.f[t] <- alpha.f + eps.f[t]
+        log.f[t] <- alpha.f + eps.f[t]+beta.time.f * TIME[t]
         eps.f[t] ~ dnorm(0, tau.f)
     }
     
     alpha.f ~ dnorm(0, 0.01)
+    beta.time.f ~ dnorm(0, 0.01)
+
     # alpha.f on prob      scale
     mean.f  <- exp(alpha.f)
     # temporal  random  variation

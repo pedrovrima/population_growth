@@ -139,5 +139,6 @@ model {
     #################  Gamma  as  derived  parameter
     for (i in 2:s) {
         gamma[i] <- phi[i-1] / rho[i-1]
+        f[i-1] <-  rho[i-1]-phi[i-1] 
     }
 }
