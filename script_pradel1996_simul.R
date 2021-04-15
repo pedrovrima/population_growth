@@ -584,16 +584,13 @@ simul.js <- function(PHI, P, b, N){
    return(list(CH=CH, B=B, N=Nt))
    }
 
+
+
+
+
 # Execute simulation function
 sim <- simul.js(PHI, P, b, N)
 CH <- sim$CH
-
-
-
-
-
-
-
 
 n.occasions <- 15                         # Number of capture occasions
 time <- 1:(n.occasions-1)
@@ -604,7 +601,7 @@ phi <- rep(0.4, n.occasions-1)           # Survival probabilities
 f <- exp(.01+(var*-.2))   # Entry probabilities 
 p <- rep(0.5, n.occasions)               # Capture probabilities
 lambda <- f+phi
-	CH=matrix(1,N_init,1)
+H=matrix(1,N_init,1)
 
 for (i in 2:n.occasions){
 	icaps <- c()
@@ -629,3 +626,56 @@ for(i in 1:nrow(CH)){
    cap.sum <- rowSums(CH)
    never <- which(cap.sum == 0)
    CH <- CH[-never,]
+
+
+
+#### Sex survival covariate
+
+
+
+
+
+
+n.occasions <- 15                         # Number of capture occasions
+time <- 1:(n.occasions-1)
+var <- rnorm(n.occasions-1,0,1)
+stand_time <- (time - mean(time)) / sd(time)
+N_init <- 5                             # Superpopulation size
+phi <- matrix(c(rep(0.1, n.occasions-1),rep(0.9, n.occasions-1)),2,n.occasions-1,byrow = T)           # Survival probabilities
+f <- exp(.01+(var*-.2))   # Entry probabilities 
+p <- rep(0.4, n.occasions)               # Capture probabilities
+lambda <- f+phi
+CH=matrix(1,N_init,1)
+
+sex <- rbinom(N_init,1,0.5)+1
+
+
+for (i in 2:n.occasions){
+	icaps <- c()
+	for(j in 1:nrow(CH)){
+		icaps <- c(icaps,rbinom(1,CH[j,i-1],phi[sex[j],i-1]))
+	}
+	CH <- cbind(CH,icaps)
+	pop_prev_1 <- sum(CH[which(sex==1),i-1])
+	pop_prev_2 <- sum(CH[which(sex==2),i-1])
+	pop_this_1 <- pop_prev_1*lambda[1,i-1]
+	pop_this_2 <- pop_prev_2*lambda[2,i-1]
+	
+	alive_this <- sum(CH[,i])
+	new_inds <- pop_this_1+pop_this_2-alive_this
+	new_sex <- rbinom(new_inds,1,0.5)+1
+	sex  <- c(sex,new_sex)
+	newInds  <- matrix(c(rep(0,i-1),1),new_inds,i,byrow=T)
+	CH <- rbind(CH,newInds)
+}
+
+for(i in 1:nrow(CH)){
+	for(j in 1:ncol(CH)){
+		CH[i,j] <- rbinom(1,CH[i,j],p[j])
+	}
+}
+
+   cap.sum <- rowSums(CH)
+   never <- which(cap.sum == 0)
+   CH <- CH[-never,]
+sex <- sex[-never]
