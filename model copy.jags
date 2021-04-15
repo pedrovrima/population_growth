@@ -1,0 +1,152 @@
+data{
+    C <- 10000
+    zeros  <- 0
+    }
+model {
+    ###########  PRIORS  #######################
+    gamma [1]  <- 0
+    phi[s] <- 0
+    # logit  constraint  for  survival  probability (phi)
+    for (t in 1:(s -1)){
+        phi[t] <- 1 / (1 + exp(-logit.phi[t]))
+        logit.phi[t] <- alpha.phi
+        # + beta.time.phi * TIME[t]
+    }
+
+    alpha.phi ~ dnorm(0, 0.01)# alpha.phi on prob      scale
+    mean.phi  <- 1 / (1 + exp(-alpha.phi))
+    # trend parameter
+    beta.time.phi ~ dnorm(0, 0.01)
+    # log  constraint  for  fecundity (f)   
+    for (t in 1:(s -1)){
+        f[t] <- exp(log.f[t])
+        log.f[t] <- alpha.f + eps.f[t]+beta.time.f * TIME[t]
+        eps.f[t] ~ dnorm(0, tau.f)
+    }
+    
+    alpha.f ~ dnorm(0, 0.01)
+    beta.time.f ~ dnorm(0, 0.01)
+
+    # alpha.f on prob      scale
+    mean.f  <- exp(alpha.f)
+    # temporal  random  variation
+    tau.f  <- 1 / (sigma.f * sigma.f)
+    sigma.f ~ dunif(0, 2)
+    for (t in 1:s){
+        # logit  constraint  for  detectability (p)
+        p[t] <- 1 / (1 + exp(-logit.p[t]))
+        logit.p[t] <- alpha.p
+        # no  constraints  for mu
+        mu[t] ~ dunif (0,1)
+        }
+        
+    alpha.p ~ dnorm(0, 0.01)
+    # alpha.p on prob      scale
+    mean.p <- 1 / (1 + exp(-alpha.p))
+        
+    #########  LIKELIHOOD (ZERO -TRICK) ######
+    zeros ~ dpois(zero.mean)
+    zero.mean  <- -L + C
+    L <- sum(l.num[1:s]) - l.denom
+    ##### log -likelihood  for the  first  occasion
+    l.num[1]  <- (u[1] * log(xi[1])) + (n[1] * log(p[1])) + (secondexpo [1] * log(1-p[1])) +(thirdexpo [1] * log(phi [1])) + (fourthexpo [1] * log(mu[1])) +(d[1] * log(1-mu[1])) + (fifthexpo [1] * log(1-(p[1]*(1 -mu [1])))) +(sixthexpo [1] * log(chi [1]))
+    xi[1]  <- 1
+    secondexpo_a [1]  <- sum(u[1:1])
+    secondexpo_b [1]  <- 0
+    secondexpo [1]  <- secondexpo_a [1] - secondexpo_b [1] - n[1]
+    thirdexpo [1]  <- sum(v[2:s])
+    fourthexpo [1]  <- n[1]-d[1]
+    fifthexpo [1]  <- sum(u[2:s])
+    sixthexpo [1]  <- v[1]-d[1]
+    ##### log -likelihood  for the  last  occasion
+    l.num[s] <- (u[s] * log(xi[s])) + (firstexpo[s] * (log(phi[s-1]) - log(phi[s-1]+f[s -1]))) +(n[s] * log(p[s])) + (secondexpo[s] * log(1-p[s])) +(fourthexpo[s] * log(mu[s])) + (d[s] * log(1-mu[s])) +(fifthexpo[s] * log(1-(p[s]*(1-mu[s])))) +(sixthexpo[s] * log(chi[s]))
+    chi[s] <- 1
+    firstexpo[s] <- sum(u[1:(s-1)])
+    secondexpo_a[s] <- sum(u[1:s])
+    secondexpo_b[s] <- sum(v[1:(s -1)])
+    secondexpo[s] <- secondexpo_a[s] - secondexpo_b[s] - n[s]
+    fourthexpo[s] <- n[s]-d[s]
+    fifthexpo[s] <- 0
+    sixthexpo[s] <- v[s]-d[s]
+    #####  likelihood  from  occasion 2 to s-1
+    for (i in 2:(s-1)) {
+        l.num[i] <- (u[i] * log(xi[i])) + (firstexpo[i] * (log(phi[i-1]) - log(phi[i-1]+f[i -1]))) +(n[i] * log(p[i])) + (secondexpo[i] * log(1-p[i])) +(thirdexpo[i] * log(phi[i])) + (fourthexpo[i] * log(mu[i])) +(d[i] * log(1-mu[i])) + (fifthexpo[i] * log(1-(p[i]*(1-mu[i])))) +(sixthexpo[i] * log(chi[i]))
+        # first  exponent
+        firstexpo[i] <- sum(u[1:(i-1)])
+        # second  exponent
+        secondexpo_a[i] <- sum(u[1:i])
+        secondexpo_b[i] <- sum(v[1:(i -1)])
+        secondexpo[i] <- secondexpo_a[i] - secondexpo_b[i] - n[i]
+        # third  exponent
+        thirdexpo[i] <- sum(v[(i+1):s])
+        # fourth  exponent
+        fourthexpo[i] <- n[i]-d[i]
+        # fifth  exponent
+        fifthexpo[i] <- sum(u[(i+1):s])
+        # sixth  exponent
+        sixthexpo[i] <- v[i]-d[i]
+    }
+    #####  likelihood  denominator
+    # 1st  product
+
+    PROD1 [1]  <-1
+     for (j in 1:(s -1)){
+        PROD1_tmp [1,j] <- 0
+    }
+    # fill part of  PROD1_tmp
+    for (i in 2:(s-1)) {
+        for (j in i:(s -1)){
+            PROD1_tmp[i,j] <- 0
+        }
+    }
+    for (i in 2:s) {
+        for (j in 1:(i -1)){
+            PROD1_tmp[i,j] <- phi[j] * (1-(p[j]*(1-mu[j])))
+        }
+    }
+    PROD1 [2]  <- PROD1_tmp [2,1]
+    for (i in 3:s) {
+        PROD1[i] <- prod(PROD1_tmp[i,1:(i-1)])
+    }
+    # 2nd  product
+    PROD2[s] <- 1
+    for (i in 1:(s-1)) {
+        for (j in (i+1):s) {
+            PROD2_tmp[i,j] <- gamma[j]
+        }
+    }
+    # fill  part of  PROD2_tmp
+    for (i in 1:(s-1)) {
+        for (j in 1:i) {
+            PROD2_tmp[i,j] <- 0
+        }
+    }
+    PROD2[s-1]  <- PROD2_tmp [(s-1),s]
+    for (i in 1:(s-2)) {
+        PROD2[i] <- prod(PROD2_tmp[i,(i+1):s])
+    }
+    for (i in 1:s) {
+        denom_base_tmp[i] <- xi[i] * PROD1[i] * PROD2[i] * p[i]
+    }
+    denom_base  <- sum(denom_base_tmp [])
+    denom_expo  <- sum(u[1:s])
+    l.denom  <- denom_expo * log(denom_base)
+    #################  Define  xi and  chi
+    for (i in 2:s) {
+        xi.tmp[i] <- (1-gamma[i]) +(gamma[i] * ((1-p[i-1])/(1 -(p[i-1] * (1-mu[i -1])))) * xi[i-1])
+        xi[i] <- max(xi.tmp[i] ,0.00001)
+    }
+    for (i in 1:(s-1)) {
+        chi[i] <- (1-phi[i]) + (phi[i] * (1-p[i+1]) * chi[i+1])
+    }
+    #################  Gamma  as  derived  parameter
+    for (i in 2:s) {
+        gamma[i] <- phi[i-1] / rho[i-1]
+
+    }
+    for (i in 1:(s-1)) {
+        rho[i] <- phi[i] + f[i]
+
+    }
+
+}
